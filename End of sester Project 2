@@ -1,0 +1,62 @@
+;Name:	          Nanyonga Rita
+;Reg No:	  2018/HD05/1975U
+;Student Number:  1800739309
+;Course:	  MSc Computer Science
+
+;Data abstractions for analysing twitter moods.
+;Since we have already extracted the file containing the data to the local machine
+;we shall use data science to process the information
+;and plot to visualize the results
+
+(require data-science-master)
+(require plot)
+(require math)
+;(require json)
+
+;procedure to read the raw data from the json file in racket
+;file is stored on the device.
+(define extracts (open-input-file "project1.json"))
+
+;extracts
+
+
+;Then clean the data by removing punctions, urls, spaces and unneccessary capitalization
+;from each tweet
+(define extracts-text (string-normalize-spaces
+		   (remove-punctuation
+                    (remove-urls
+                     (string-downcase (port->string extracts))))))
+
+;extracts-text
+(close-input-port extracts)
+
+;Procedure to sort the words in the document created above.
+;Here we look for unique words and the number of times they appear.
+(define twords (document->tokens extracts-text #:sort? #t))
+
+;twords
+
+;Procedure to assign or mark each word with an emotional label
+;using the nrc lexicon
+(define sentiment (list->sentiment twords #:lexicon 'nrc))
+
+
+;Words in above maybe assigned the same sentiment label, 
+;so we aggregrate (by summing) across the tokens to give us a
+;better analysis of how many words have the simlar sentiment.
+(aggregate sum ($ sentiment 'sentiment) ($ sentiment 'freq))
+
+
+;Using a discrete-histogram we can plot the number of times a given sentiment
+;appeared against the sentiment itself.
+ 
+(let ([counts (aggregate sum ($ sentiment 'sentiment) ($ sentiment 'freq))])
+  (parameterize ((plot-width 800))
+    (plot (list
+	   (tick-grid)
+	   (discrete-histogram
+	    (sort counts (λ (x y) (> (second x) (second y))))
+	    #:color "OrangeRed"
+	    #:line-color "DimGray"))
+	  #:x-label "Affective Label"
+	  #:y-label "Frequency")))
